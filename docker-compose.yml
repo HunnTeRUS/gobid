@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - ${GOBID_APP_PORT:-8080}:8080
+      - ${GOBID_APP_PORT:-3000}:3000
     environment:
       - GOBID_DATABASE_HOST=db
       - GOBID_DATABASE_PASSWORD=${GOBID_DATABASE_PASSWORD}

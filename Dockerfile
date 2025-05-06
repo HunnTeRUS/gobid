@@ -1,4 +1,4 @@
-FROM golang:1.22.2-alpine as builder
+FROM golang:1.23-alpine as builder
 
 WORKDIR /app
 
@@ -27,6 +27,6 @@ RUN mkdir -p /app/scripts
 COPY scripts/init.sh /app/scripts/init.sh
 RUN chmod +x /app/scripts/init.sh
 
-EXPOSE 3080
+EXPOSE 3000
 
 CMD ["/app/scripts/init.sh"]
