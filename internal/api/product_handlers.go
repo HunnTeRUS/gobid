@@ -40,7 +40,8 @@ func (api *Api) handleCreateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, _ := context.WithDeadline(context.Background(), data.AuctionEnd)
+	ctx, cancel := context.WithDeadline(context.Background(), data.AuctionEnd)
+	defer cancel()
 	auctionRoom := services.NewAuctionRoom(ctx, productId, api.BidsService)
 
 	go auctionRoom.Run()
