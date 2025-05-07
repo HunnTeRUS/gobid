@@ -1,0 +1,65 @@
+name: CI/CD - Go App with App Runner
+
+on:
+  push:
+    branches: [main]
+
+env:
+  AWS_REGION: us-east-1
+  APP_NAME: gobid
+  IMAGE_TAG: latest
+  ECR_REPO: ${{ secrets.ECR_REPO }}
+  SERVICE_ARN: ${{ secrets.APP_RUNNER_SERVICE_ARN }}
+
+jobs:
+  test-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v3
+
+      - name: Instalar Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.21
+
+      - name: Rodar Linter
+        run: go fmt ./...
+
+      - name: Rodar Testes
+        run: go test ./...
+
+  deploy:
+    needs: test-lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login no Amazon ECR
+        run: |
+          aws ecr get-login-password --region $AWS_REGION | \
+          docker login --username AWS --password-stdin $ECR_REPO
+
+      - name: Build da imagem
+        run: docker build -t $APP_NAME:$IMAGE_TAG -f Dockerfile.prod .
+
+      - name: Tag & Push para ECR
+        run: |
+          docker tag $APP_NAME:$IMAGE_TAG $ECR_REPO/$APP_NAME:$IMAGE_TAG
+          docker push $ECR_REPO/$APP_NAME:$IMAGE_TAG
+
+      - name: Update do App Runner
+        run: |
+          aws apprunner update-service \
+            --service-arn $SERVICE_ARN \
+            --source-configuration ImageRepositoryType=ECR,ImageIdentifier=$ECR_REPO/$APP_NAME:$IMAGE_TAG,ImageConfiguration={Port=3000} \
+            --region $AWS_REGION
