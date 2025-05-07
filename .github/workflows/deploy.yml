@@ -8,8 +8,8 @@ env:
   AWS_REGION: us-east-1
   APP_NAME: gobid
   IMAGE_TAG: latest
-  ECR_REPO: ${{ secrets.ECR_REPO }}
-  SERVICE_ARN: ${{ secrets.APP_RUNNER_SERVICE_ARN }}
+  ECR_REPO: ${{ vars.ECR_REPO }}
+  SERVICE_ARN: ${{ vars.APP_RUNNER_SERVICE_ARN }}
 
 jobs:
   test-lint:
