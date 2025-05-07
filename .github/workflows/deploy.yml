@@ -68,7 +68,7 @@ jobs:
 
       - name: Validar cobertura mínima
         run: |
-          COV=$$(cat coverage.txt | sed 's/%//')
+          COV=$(cat coverage.txt | sed 's/%//')
           MIN=0
           echo "Cobertura atual: $$COV%"
           if [ "$$COV" -lt "$$MIN" ]; then
