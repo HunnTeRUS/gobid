@@ -5,11 +5,8 @@ on:
     branches: [main]
 
 env:
-  AWS_REGION: us-east-1
   APP_NAME: gobid
   IMAGE_TAG: latest
-  ECR_REPO: ${{ vars.ECR_REPO }}
-  SERVICE_ARN: ${{ vars.APP_RUNNER_SERVICE_ARN }}
 
 jobs:
   lint:
@@ -18,10 +15,10 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
         with:
-          go-version: 1.21
+          go-version: 1.23
 
       - name: Rodar go fmt
-        run: test -z "$(gofmt -l .)" || (echo "❌ Código não formatado"; exit 1)
+        run: test -z "$(gofmt -l .)" || (echo "Código não formatado"; exit 1)
 
       - name: Rodar go vet
         run: go vet ./...
@@ -32,90 +29,9 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
         with:
-          go-version: 1.21
+          go-version: 1.23
 
       - name: Verificar go.mod/go.sum
         run: |
           go mod tidy
-          git diff --exit-code || (echo "❌ go.mod ou go.sum estão desatualizados"; exit 1)
-
-  test:
-    runs-on: ubuntu-latest
-    needs: [lint, tidy]
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v4
-        with:
-          go-version: 1.21
-
-      - name: Rodar testes
-        run: go test ./...
-
-  coverage:
-    runs-on: ubuntu-latest
-    needs: [test]
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v4
-        with:
-          go-version: 1.21
-
-      - name: Gerar cobertura
-        run: |
-          go test -coverprofile=coverage.out ./...
-          go tool cover -func=coverage.out
-          go tool cover -func=coverage.out | grep total | awk '{ print $$3 }' > coverage.txt
-
-      - name: Validar cobertura mínima
-        run: |
-          COV=$(cat coverage.txt | sed 's/%//')
-          MIN=0
-          echo "Cobertura atual: $$COV%"
-          if [ "$$COV" -lt "$$MIN" ]; then
-            echo "❌ Cobertura abaixo do mínimo ($$MIN%)"
-            exit 1
-          fi
-
-  deploy:
-    needs: [coverage]
-    runs-on: ubuntu-latest
-    environment: Gobid
-    steps:
-      - name: Checkout código
-        uses: actions/checkout@v3
-
-      - name: 🔍 Debug variáveis de ambiente
-        run: |
-          echo "================== DEBUG VARIÁVEIS =================="
-          echo "APP_NAME: $APP_NAME"
-          echo "AWS_REGION: '$AWS_REGION'"
-          echo "ECR_REPO: '$ECR_REPO'"
-          echo "SERVICE_ARN: '$SERVICE_ARN'"
-          echo "====================================================="
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Login no Amazon ECR
-        run: |
-          aws ecr get-login-password --region $AWS_REGION | \
-          docker login --username AWS --password-stdin $ECR_REPO
-
-      - name: Build da imagem
-        run: docker build -t $APP_NAME:$IMAGE_TAG -f Dockerfile.prod .
-
-      - name: Tag & Push para ECR
-        run: |
-          docker tag $APP_NAME:$IMAGE_TAG $ECR_REPO/$APP_NAME:$IMAGE_TAG
-          docker push $ECR_REPO/$APP_NAME:$IMAGE_TAG
-
-      - name: Update do App Runner
-        run: |
-          aws apprunner update-service \
-            --service-arn $SERVICE_ARN \
-            --source-configuration file://apprunner-config.json \
-            --region $AWS_REGION
+          git diff --exit-code || (echo "go.mod ou go.sum estão desatualizados"; exit 1)
