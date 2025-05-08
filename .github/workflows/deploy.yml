@@ -95,6 +95,9 @@ jobs:
           aws ecr get-login-password --region $AWS_REGION | \
           docker login --username AWS --password-stdin $ECR_REPO
 
+      - name: Build da imagem
+        run: docker build -t $APP_NAME:$IMAGE_TAG -f Dockerfile.prod .
+
       - name: Tag e push da imagem para ECR
         run: |
           docker tag $APP_NAME:$IMAGE_TAG $ECR_REPO/$APP_NAME:$IMAGE_TAG
